@@ -88,7 +88,7 @@ struct QuickPostView: View {
         if selectedPostType == "manual" {
             postNow()
         } else {
-//            generateTip()
+            generateTip()
         }
     }
     
@@ -99,7 +99,7 @@ struct QuickPostView: View {
             do {
                 let response = try await NetworkManager.shared.postNow(
                     content: postContent,
-                    imageUrl: imageUrl.isEmpty ? nil : imageUrl
+//                    imageUrl: imageUrl.isEmpty ? nil : imageUrl
                 )
                 
                 await MainActor.run {
@@ -110,6 +110,36 @@ struct QuickPostView: View {
                         postContent = ""
                         imageUrl = ""
                     }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    alertMessage = "Error: \(error.localizedDescription)"
+                    showAlert = true
+                }
+            }
+        }
+    }
+    
+    private func generateTip() {
+        isLoading = true
+        
+        Task {
+            do {
+                let response = try await NetworkManager.shared.generateTipPost(topic: tipTopic)
+                
+                await MainActor.run {
+                    isLoading = false
+                    
+                    if response.success {
+                        // Set the generated content to show in the UI
+                        postContent = response.generatedContent ?? "Generated tip content"
+                        alertMessage = "Tip generated successfully! You can now post it or edit it first."
+                    } else {
+                        alertMessage = response.error ?? "Failed to generate tip"
+                    }
+                    
+                    showAlert = true
                 }
             } catch {
                 await MainActor.run {
